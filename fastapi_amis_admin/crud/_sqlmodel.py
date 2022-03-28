@@ -104,7 +104,7 @@ class SQLModelSelector:
                     link_item_id = link_item_id[1:]
                     if not link_item_id:
                         return None
-                link_item_id = parser_str_set_list(link_item_id)
+                link_item_id = list(map(link_col.expression.type.python_type, parser_str_set_list(link_item_id)))
                 if op == 'in_':
                     return self.pk.in_(select(pk_col).where(link_col.in_(link_item_id)))
                 elif op == 'not_in':
@@ -137,7 +137,7 @@ class SQLModelSelector:
             if insfield := self._list_fields_ins.get(k):
                 operator, val = self._parser_query_value(v)
                 if operator:
-                    lst.append(getattr(insfield, operator)(*val))
+                    lst.append(getattr(insfield, operator)(*list(map(insfield.expression.type.python_type, val))))
         return lst
 
 
@@ -255,7 +255,7 @@ class SQLModelCrud(BaseCrud, SQLModelSelector):
             if is_bulk:
                 return BaseApiOut(data=result.rowcount)  # type: ignore
             data = values[0]
-            data[self.pk_name] = result.lastrowid  # type: ignore
+            data[self.pk_name] = getattr(result, "lastrowid", None)
             data = self.model.parse_obj(data)
             return BaseApiOut(data=data)
 
@@ -271,7 +271,9 @@ class SQLModelCrud(BaseCrud, SQLModelSelector):
         ):
             if not await self.has_read_permission(request, item_id):
                 return self.error_no_router_permission(request)
-            result = await session.execute(stmt.where(self.pk.in_(item_id)))
+            result = await session.execute(stmt.where(
+                self.pk.in_(list(map(self.pk.expression.type.python_type, item_id)))
+            ))
             items = result.all()
             items = self.parser.conv_row_to_dict(items)
             if items:
@@ -291,7 +293,7 @@ class SQLModelCrud(BaseCrud, SQLModelSelector):
                         ):
             if not await self.has_update_permission(request, item_id, data):
                 return self.error_no_router_permission(request)
-            stmt = update(self.model).where(self.pk.in_(item_id))
+            stmt = update(self.model).where(self.pk.in_(list(map(self.pk.expression.type.python_type, item_id))))
             data = await self.on_update_pre(request, data)
             if not data:
                 return self.error_data_handle(request)
@@ -312,7 +314,7 @@ class SQLModelCrud(BaseCrud, SQLModelSelector):
         ):
             if not await self.has_delete_permission(request, item_id):
                 return self.error_no_router_permission(request)
-            stmt = delete(self.model).where(self.pk.in_(item_id))
+            stmt = delete(self.model).where(self.pk.in_(list(map(self.pk.expression.type.python_type, item_id))))
             result = await session.execute(stmt)
             if result.rowcount:  # type: ignore
                 await session.commit()
