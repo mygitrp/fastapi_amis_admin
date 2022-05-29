@@ -39,8 +39,8 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          echo ${{ env.pythonLocation }}/lib/${{ matrix.python-version }}
-          unlink ${{ env.pythonLocation }}/lib/${{ matrix.python-version }}/site-packages/fastapi_amis_admin
+          echo ${{ env.pythonLocation }}/lib/python${{ matrix.python-version }}
+          unlink ${{ env.pythonLocation }}/lib/python${{ matrix.python-version }}/site-packages/fastapi_amis_admin
           flit install --symlink
 
       - name: Test
