@@ -22,12 +22,12 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ${{ env.pythonLocation }}
@@ -38,7 +38,10 @@ jobs:
         run: pip install flit
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: flit install --symlink
+        run: |
+          echo ${{ env.pythonLocation }}
+          unlink ${{ env.pythonLocation }}/site-packages/fastapi_amis_admin
+          flit install --symlink
 
       - name: Test
         run: pytest
