@@ -38,9 +38,7 @@ jobs:
         run: pip install flit
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          unlink '/home/runner/work/fastapi_amis_admin/fastapi_amis_admin/fastapi_amis_admin'
-          flit install --symlink
+        run: flit install --symlink
 
       - name: Test
         run: pytest
