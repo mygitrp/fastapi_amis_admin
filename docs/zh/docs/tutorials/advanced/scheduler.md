@@ -18,8 +18,8 @@ pip install fastapi-scheduler
 
 ```python
 from fastapi import FastAPI
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
 from datetime import date
 from fastapi_scheduler import SchedulerAdmin
 
@@ -27,7 +27,7 @@ from fastapi_scheduler import SchedulerAdmin
 app = FastAPI()
 
 # 创建`AdminSite`实例
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 # 创建定时任务调度器`SchedulerAdmin`实例
 scheduler = SchedulerAdmin.bind(site)

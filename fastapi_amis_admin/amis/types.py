@@ -1,19 +1,23 @@
 from typing import Dict, Any, Union, List
 
-import ujson
 from pydantic import BaseModel, Extra
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 Expression = str
 Template = Union[str, "Tpl"]
-SchemaNode = Union[Template, "AmisNode", List["AmisNode"], dict]
-OptionsNode = Union[List[dict], List[str]]
+SchemaNode = Union[Template, "AmisNode", List["AmisNode"], Dict[str, Any], List[Dict[str, Any]]]
+OptionsNode = Union[List[Dict[str, Any]], List[str]]
 
 
 class BaseAmisModel(BaseModel):
     class Config:
         extra = Extra.allow
-        json_loads = ujson.loads
-        json_dumps = ujson.dumps
+        json_loads = json.loads
+        json_dumps = json.dumps
 
     def amis_json(self):
         return self.json(exclude_none=True, by_alias=True)
@@ -44,6 +48,9 @@ class AmisNode(BaseAmisModel):
     hidden: bool = None  # 隐藏
     visibleOn: Expression = None  # 条件显示
     hiddenOn: Expression = None  # 条件显示
+    id: str = None
+    name: str = None
+    onEvent: dict = None
 
 
 class AmisAPI(BaseAmisModel):
@@ -78,3 +85,12 @@ class Tpl(AmisNode):
     type: str = "tpl"  # 指定为 Tpl 组件
     tpl: str  # 配置模板
     className: str = None  # 外层 Dom 的类名
+
+
+class Event(BaseAmisModel):
+    actionType: str = None  # 动作名称
+    args: dict = None  # 动作参数{key:value}，支持数据映射
+    preventDefault: Union[bool, Expression] = None  # "False"  # 阻止事件默认行为，> 1.10.0 及以上版本支持表达式
+    stopPropagation: Union[bool, Expression] = None  # "False"  # 停止后续动作执行，> 1.10.0 及以上版本支持表达式
+    expression: Union[bool, Expression] = None  # 执行条件，不设置表示默认执行
+    outputVar: str = None  # 输出数据变量名

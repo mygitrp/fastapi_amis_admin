@@ -58,7 +58,7 @@ everyone's sponsorship and support.
 
 ## Dependencies
 
-- [Fastapi](https://fastapi.tiangolo.com/): Finish the web part.
+- [FastAPI](https://fastapi.tiangolo.com/): Finish the web part.
 - [SQLModel](https://sqlmodel.tiangolo.com/): Finish `ORM` model mapping. Perfectly
   combine  [SQLAlchemy](https://www.sqlalchemy.org/) with [Pydantic](https://pydantic-docs.helpmanual.io/), and have all
   their features .
@@ -72,7 +72,7 @@ modules, `amis_admin` is developed by the former.
 - `amis`: Based on the `pydantic` data model building library of `baidu amis`. To generate/parse data rapidly.
 - `fastapi-sqlmodel-crud`: Based on `FastAPI` &`SQLModel`. To quickly build Create, Read, Update, Delete common API
   interface .
-- `amis_admin`: Inspired by `Django-Admin`. Combine `amis` with `fastapi-sqlmodel-crud`. To quickly build Web Admin
+- `admin`: Inspired by `Django-Admin`. Combine `amis` with `fastapi-sqlmodel-crud`. To quickly build Web Admin
   dashboard .
 
 ## Installation
@@ -85,14 +85,14 @@ pip install fastapi_amis_admin
 
 ```python
 from fastapi import FastAPI
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
 
 # create FastAPI application
 app = FastAPI()
 
 # create AdminSite instance
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 # mount AdminSite instance
 site.mount_app(app)
@@ -108,16 +108,16 @@ if __name__ == '__main__':
 ```python
 from fastapi import FastAPI
 from sqlmodel import SQLModel
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
-from fastapi_amis_admin.amis_admin import admin
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
+from fastapi_amis_admin.admin import admin
 from fastapi_amis_admin.models.fields import Field
 
 # create FastAPI application
 app = FastAPI()
 
 # create AdminSite instance
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 
 # Create an SQLModel, see document for details: https://sqlmodel.tiangolo.com/
@@ -159,9 +159,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from starlette.requests import Request
 from fastapi_amis_admin.amis.components import Form
-from fastapi_amis_admin.amis_admin import admin
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
+from fastapi_amis_admin.admin import admin
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
 from fastapi_amis_admin.crud.schema import BaseApiOut
 from fastapi_amis_admin.models.fields import Field
 
@@ -169,7 +169,7 @@ from fastapi_amis_admin.models.fields import Field
 app = FastAPI()
 
 # create AdminSite instance
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 
 # register FormAdmin
@@ -200,15 +200,34 @@ if __name__ == '__main__':
     uvicorn.run(app, debug=True)
 ```
 
+## Working with Command
+
+```bash
+# Install command line extension
+pip install fastapi_amis_admin[cli]
+
+# View help
+faa --help
+
+# Initialize a `FastAPI-Amis-Admin` project
+faa new project_name --init
+
+# Initialize a `FastAPI-Amis-Admin` application
+faa new app_name
+
+# Fast running project
+faa run
+```
+
 ## Preview
 
 - Open `http://127.0.0.1:8000/admin/` in your browser:
 
-![ModelAdmin](https://raw.githubusercontent.com/amisadmin/fastapi_amis_admin_demo/master/upload/img/ModelAdmin.png)
+![ModelAdmin](https://s2.loli.net/2022/03/20/ItgFYGUONm1jCz5.png)
 
 - Open `http://127.0.0.1:8000/admin/docs` in your browser:
 
-![Docs](https://raw.githubusercontent.com/amisadmin/fastapi_amis_admin_demo/master/upload/img/Docs.png)
+![Docs](https://s2.loli.net/2022/03/20/1GcCiPdmXayxrbH.png)
 
 ## Project
 

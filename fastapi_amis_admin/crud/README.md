@@ -13,12 +13,10 @@ pip install fastapi-sqlmodel-crud
 **main.py**:
 
 ```python
-from typing import Optional, Generator, Any
+from typing import Optional
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel, Field
-from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi_amis_admin.crud import SQLModelCrud
 
 
@@ -31,20 +29,12 @@ class Article(SQLModel, table=True):
     content: str = Field(title='ArticleContent')
 
 
-# 2.创建 AsyncSession
-database_url = 'sqlite+aiosqlite:///admisadmin.db'
-engine: AsyncEngine = create_async_engine(database_url, future=True, pool_recycle=1200)
-session_maker: sessionmaker = sessionmaker(engine, class_=AsyncSession,
-                                           expire_on_commit=False, autocommit=False, autoflush=False)
-
-
-async def session_factory() -> Generator[AsyncSession, Any, None]:
-    async with session_maker() as session:
-        yield session
-
+# 2.创建 AsyncEngine
+database_url = 'sqlite+aiosqlite:///amisadmin.db'
+engine: AsyncEngine = create_async_engine(database_url, future=True)
 
 # 3. 注册crud路由
-article_crud = SQLModelCrud(model=Article, session_factory=session_factory).register_crud()
+article_crud = SQLModelCrud(model=Article, engine=engine).register_crud()
 
 app = FastAPI(debug=True)
 
@@ -56,7 +46,7 @@ app.include_router(article_crud.router)
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.run_sync(SQLModel.metadata.create_all, is_session=False)
 
 ```
 

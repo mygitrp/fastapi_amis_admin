@@ -1,9 +1,10 @@
 """详细文档阅读地址: https://baidu.gitee.io/amis/zh-CN/components"""
-from typing import Union, List, Optional, Any
+import os
+from typing import Union, List, Optional, Any, Dict
 
 from pydantic import Field
 
-from .constants import LevelEnum, DisplayModeEnum, SizeEnum
+from .constants import LevelEnum, DisplayModeEnum, SizeEnum, TabsModeEnum
 from .types import API, Expression, AmisNode, SchemaNode, Template, BaseAmisModel, OptionsNode, Tpl
 from .utils import amis_templates
 
@@ -11,6 +12,8 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Html(AmisNode):
@@ -53,6 +56,8 @@ class Badge(AmisNode):
 
 class Page(AmisNode):
     """页面"""
+    __default_template_path__: str = f'{BASE_DIR}/templates/page.html'
+
     type: str = "page"  # 指定为 Page 组件
     title: SchemaNode = None  # 页面标题
     subTitle: SchemaNode = None  # 页面副标题
@@ -77,11 +82,27 @@ class Page(AmisNode):
     stopAutoRefreshWhen: Expression = None  # 通过表达式来配置停止刷新的条件
     regions: List[str] = None
 
-    def amis_html(self, template_path: str = '', locale: str = ''):
+    def amis_html(
+            self,
+            template_path: str = '',
+            locale: str = 'zh_CN',
+            cdn: str = 'https://unpkg.com',
+            pkg: str = 'amis@1.10.1',
+            site_title: str = 'Amis',
+            site_icon: str = '',
+    ):
         """渲染html模板"""
-        return amis_templates('page.html', template_path).replace(
-            '[[AmisSchemaJson]]', self.amis_json()
-        ).replace('[[locale]]', locale)
+        template_path = template_path or self.__default_template_path__
+        return amis_templates(template_path).safe_substitute(
+            {
+                "AmisSchemaJson": self.amis_json(),
+                "locale": locale,
+                "cdn": cdn,
+                "pkg": pkg,
+                "site_title": site_title,
+                "site_icon": site_icon,
+            }
+        )
 
 
 class Divider(AmisNode):
@@ -143,16 +164,19 @@ class Tabs(AmisNode):
 
     class Item(AmisNode):
         title: str = None  # Tab 标题
-        icon: Icon = None  # Tab 的图标
+        icon: Union[str, Icon] = None  # Tab 的图标
         tab: SchemaNode = None  # 内容区
         hash: str = None  # 设置以后将跟 url 的 hash 对应
         reload: bool = None  # 设置以后内容每次都会重新渲染，对于 crud 的重新拉取很有用
         unmountOnExit: bool = None  # 每次退出都会销毁当前 tab 栏内容
         className: str = None  # "bg-white b-l b-r b-b wrapper-md"  # Tab 区域样式
+        iconPosition: str = None  # "left"  # Tab 的图标位置 left / right
+        closable: bool = None  # False  # 是否支持删除，优先级高于组件的 closable
+        disabled: bool = None  # False  # 是否禁用
 
     type: str = "tabs"  # 指定为 Tabs 渲染器
     className: str = None  # 外层 Dom 的类名
-    mode: str = None  # 展示模式，取值可以是 line、card、radio、vertical
+    mode: str = None  # 展示模式，取值可以是 line、card、radio、vertical、chrome、simple、strong、tiled、sidebar
     tabsClassName: str = None  # Tabs Dom 的类名
     tabs: List[Item] = None  # tabs 内容
     source: str = None  # tabs 关联数据，关联后可以重复生成选项卡
@@ -160,7 +184,31 @@ class Tabs(AmisNode):
     toolbarClassName: str = None  # tabs 中工具栏的类名
     mountOnEnter: bool = None  # False  # 只有在点中 tab 的时候才渲染
     unmountOnExit: bool = None  # False  # 切换 tab 的时候销毁
-    scrollable: bool = None  # False  # 是否导航支持内容溢出滚动，vertical和chrome模式下不支持该属性；chrome模式默认压缩标签
+    scrollable: bool = None  # False  # 是否导航支持内容溢出滚动，vertical和chrome模式下不支持该属性；chrome模式默认压缩标签（属性废弃）
+    tabsMode: TabsModeEnum = None  # 展示模式，取值可以是 line、card、radio、vertical、chrome、simple、strong、tiled、sidebar
+    addable: bool = None  # False  # 是否支持新增
+    addBtnText: str = None  # "增加"  # 新增按钮文案
+    closable: bool = None  # False  # 是否支持删除
+    draggable: bool = None  # False  # 是否支持拖拽
+    showTip: bool = None  # False  # 是否支持提示
+    showTipClassName: str = None  # "'' "  # 提示的类
+    editable: bool = None  # False  # 收否可编辑标签名
+    sidePosition: str = None  # "left"  # sidebar 模式下，标签栏位置 left / right
+
+
+class Portlet(Tabs):
+    """门户栏目"""
+
+    class Item(Tabs.Item):
+        toolbar: SchemaNode = None  # tabs 中的工具栏，随 tab 切换而变化
+
+    type: str = "portlet"  # 指定为 Portlet 渲染器
+    contentClassName: str = None  # Tabs content Dom 的类名
+    tabs: List[Item] = None  # tabs 内容
+    style: Union[str, dict] = None  # 自定义样式
+    description: Template = None  # 标题右侧信息
+    hideHeader: bool = None  # False  # 隐藏头部
+    divider: bool = None  # False  # 去掉分隔线
 
 
 class Horizontal(AmisNode):
@@ -172,7 +220,8 @@ class Horizontal(AmisNode):
 class Action(AmisNode):
     """行为按钮"""
     type: str = "button"  # 指定为 Page 渲染器。 button  action
-    actionType: str  # 【必填】这是 action 最核心的配置，来指定该 action 的作用类型，支持：ajax、link、url、drawer、dialog、confirm、cancel、prev、next、copy、close。
+    actionType: str = None  # 【必填】这是 action 最核心的配置，来指定该 action 的作用类型，
+    # 支持：ajax、link、url、drawer、dialog、confirm、cancel、prev、next、copy、close。
     label: str = None  # 按钮文本。可用 ${xxx} 取值。
     level: LevelEnum = None  # 按钮样式，支持：link、primary、secondary、info、success、warning、danger、light、dark、default。
     size: str = None  # 按钮大小，支持：xs、sm、md、lg。
@@ -193,6 +242,10 @@ class Action(AmisNode):
         bool, str] = None  # 当action配置在dialog或drawer的actions中时，配置为true指定此次操作完后关闭当前dialog或drawer。当值为字符串，并且是祖先层弹框的名字的时候，会把祖先弹框关闭掉。
     required: List[str] = None  # 配置字符串数组，指定在form中进行操作之前，需要指定的字段名的表单项通过验证
     # primary:bool=None
+    onClick: str = None  # 自定义点击事件 通过字符串形式的 onClick 来定义点击事件，这个字符串会转成 JavaScript 函数
+    componentId: str = None  # 目标组件ID
+    args: Union[dict, str] = None  # 事件参数
+    script: str = None  # 自定义 JS 脚本代码，代码内可以通过调用doAction执行任何动作 ，通过事件对象event可以实现事件动作干预
 
 
 class ActionType:
@@ -234,12 +287,12 @@ class ActionType:
 class PageSchema(AmisNode):
     """页面配置"""
     label: str = None  # 菜单名称。
-    icon: str = None  # 菜单图标，比如：fa fa-file.
+    icon: str = 'fa fa-flash'  # 菜单图标，比如：'fa fa-file'.
     url: str = None  # 页面路由路径，当路由命中该路径时，启用当前页面。当路径不是 / 打头时，会连接父级路径。
     # 比如：父级的路径为 folder，而此时配置 pageA, 那么当页面地址为 /folder/pageA 时才会命中此页面。
     # 当路径是 / 开头如： /crud/list 时，则不会拼接父级路径。
     # 另外还支持 /crud/view/:id 这类带参数的路由，页面中可以通过 ${params.id} 取到此值。
-    schema_: Page = Field(None, alias='schema')  # 页面的配置，具体配置请前往 Page 页面说明
+    schema_: Union[Page, "Iframe"] = Field(None, alias='schema')  # 页面的配置，具体配置请前往 Page 页面说明
     schemaApi: API = None  # 如果想通过接口拉取，请配置。返回路径为 json>data。schema 和 schemaApi 只能二选一。
     link: str = None  # 如果想配置个外部链接菜单，只需要配置 link 即可。
     redirect: str = None  # 跳转，当命中当前页面时，跳转到目标页面。
@@ -250,9 +303,31 @@ class PageSchema(AmisNode):
     children: List["PageSchema"] = None  # 子菜单
     sort: int = None  # 排序
 
+    def as_tabs_item(self, tabs_extra: Dict[str, Any] = None, item_extra: Dict[str, Any] = None):
+        if self.children:
+            tab = Tabs(
+                tabs=[item.as_tabs_item(tabs_extra, item_extra) for item in self.children]
+            ).update_from_dict(tabs_extra or {})
+        elif self.schema_:
+            tab = self.schema_
+            if isinstance(tab, Iframe):
+                tab.height = 1080
+        elif self.schemaApi:
+            tab = Service(schemaApi=self.schemaApi)
+        elif self.link:
+            tab = Page(body=Link(href=self.link, body=self.label, blank=True))
+        else:
+            tab = None
+        return Tabs.Item(
+            title=self.label,
+            icon=self.icon,
+            tab=tab,
+        ).update_from_dict(item_extra or {})
 
-class App(AmisNode):
+
+class App(Page):
     """多页应用"""
+    __default_template_path__: str = f'{BASE_DIR}/templates/app.html'
     type: str = "app"
     api: API = None  # 页面配置接口，如果你想远程拉取页面配置请配置。返回配置路径 json>data>pages，具体格式请参考 pages 属性。
     brandName: str = None  # 应用名称
@@ -265,12 +340,6 @@ class App(AmisNode):
     pages: List[PageSchema] = None  # Array<页面配置>具体的页面配置。
 
     # 通常为数组，数组第一层为分组，一般只需要配置 label 集合，如果你不想分组，直接不配置，真正的页面请在第二层开始配置，即第一层的 children 中。
-
-    def amis_html(self, template_path: str = '', locale: str = ''):
-        """渲染html模板"""
-        return amis_templates('app.html', template_path).replace(
-            '[[AmisSchemaJson]]', self.amis_json()
-        ).replace('[[locale]]', locale)
 
 
 class ButtonGroup(AmisNode):
@@ -414,6 +483,7 @@ class FormItem(AmisNode):
     requiredOn: Expression = None  # 过表达式来配置当前表单项是否为必填。
     validations: Union[Validation, Expression] = None  # 表单项值格式验证，支持设置多个，多个规则用英文逗号隔开。
     validateApi: Expression = None  # 表单校验接口
+    copyable: Union[bool, dict] = None  # 是否可复制  boolean 或 {icon: string, content:string}
 
 
 class Form(AmisNode):
@@ -515,6 +585,27 @@ class Checkbox(FormItem):
     option: str = None  # 选项说明
     trueValue: Any = None  # 标识真值
     falseValue: Any = None  # 标识假值
+
+
+class Radios(FormItem):
+    """单选框"""
+    type: str = 'radios'
+    options: List[Union[dict, str]] = None  # 选项组
+    source: API = None  # 动态选项组
+    labelField: bool = None  # "label"  # 选项标签字段
+    valueField: bool = None  # "value"  # 选项值字段
+    columnsCount: int = None  # 1  # 选项按几列显示，默认为一列
+    inline: bool = None  # True  # 是否显示为一行
+    selectFirst: bool = None  # False  # 是否默认选中第一个
+    autoFill: dict = None  # 自动填充
+
+
+class ChartRadios(Radios):
+    """单选框"""
+    type: str = 'chart-radios'
+    config: dict = None  # echart 图表配置
+    showTooltipOnHighlight: bool = None  # False  # 高亮的时候是否显示 tooltip
+    chartValueField: str = None  # "value"  # 图表数值字段名
 
 
 class Checkboxes(FormItem):
@@ -719,7 +810,6 @@ class InputTable(FormItem):
     addable: bool = None  # False  # 是否可增加一行
     editable: bool = None  # False  # 是否可编辑
     removable: bool = None  # False  # 是否可删除
-    copyable: bool = None  # False  # 是否可复制
     showAddBtn: bool = None  # True  # 是否显示添加按钮
     addApi: API = None  # 新增时提交的 API
     updateApi: API = None  # 修改时提交的 API
@@ -804,7 +894,7 @@ class LocationPicker(FormItem):
     """地理位置"""
     type: str = 'location-picker'
     vendor: str = 'baidu'  # 地图厂商，目前只实现了百度地图
-    ak: str = ''  # 百度地图的 ak  # 注册地址: http://lbsyun.baidu.com/
+    ak: str = ...  # 百度地图的 ak  # 注册地址: http://lbsyun.baidu.com/
     clearable: bool = None  # False  # 输入框是否可清空
     placeholder: str = None  # "请选择位置"  # 默认提示
     coordinatesType: str = None  # "bd09"  # 默为百度坐标，可设置为'gcj02'
@@ -817,7 +907,7 @@ class InputNumber(FormItem):
     max: Union[int, Template] = None  # 最大值
     step: int = None  # 步长
     precision: int = None  # 精度，即小数点后几位
-    showSteps: bool = True  # 是否显示上下点击按钮
+    showSteps: bool = None  # True  # 是否显示上下点击按钮
     prefix: str = None  # 前缀
     suffix: str = None  # 后缀
     kilobitSeparator: bool = None  # 千分分隔
@@ -876,7 +966,7 @@ class InputText(FormItem):
     delimiter: str = None  # 拼接符 ","
     labelField: str = None  # 选项标签字段 "label"
     valueField: str = None  # 选项值字段 "value"
-    joinValues: bool = True  # 拼接值
+    joinValues: bool = None  # True  # 拼接值
     extractValue: bool = None  # 提取值
     addOn: SchemaNode = None  # 输入框附加组件，比如附带一个提示文字，或者附带一个提交按钮。
     trimContents: bool = None  # 是否去除首尾空白文本。
@@ -912,30 +1002,30 @@ class Select(FormItem):
     options: OptionsNode = None  # 选项组
     source: API = None  # 动态选项组
     autoComplete: API = None  # 自动提示补全
-    delimiter: Union[bool, str] = False  # 拼接符
+    delimiter: Union[bool, str] = None  # False  # 拼接符
     labelField: str = None  # "label"  # 选项标签字段
     valueField: str = None  # "value"  # 选项值字段
-    joinValues: bool = True  # 拼接值
-    extractValue: bool = False  # 提取值
-    checkAll: bool = False  # 是否支持全选
+    joinValues: bool = None  # True  # 拼接值
+    extractValue: bool = None  # False  # 提取值
+    checkAll: bool = None  # False  # 是否支持全选
     checkAllLabel: str = None  # "全选"  # 全选的文字
-    checkAllBySearch: bool = False  # 有检索时只全选检索命中的项
-    defaultCheckAll: bool = False  # 默认是否全选
-    creatable: bool = False  # 新增选项
-    multiple: bool = False  # 多选
-    searchable: bool = False  # 检索
+    checkAllBySearch: bool = None  # False  # 有检索时只全选检索命中的项
+    defaultCheckAll: bool = None  # False  # 默认是否全选
+    creatable: bool = None  # False  # 新增选项
+    multiple: bool = None  # False  # 多选
+    searchable: bool = None  # False  # 检索
     createBtnLabel: str = None  # "新增选项"  # 新增选项
     addControls: List[FormItem] = None  # 自定义新增表单项
     addApi: API = None  # 配置新增选项接口
-    editable: bool = False  # 编辑选项
+    editable: bool = None  # False  # 编辑选项
     editControls: List[FormItem] = None  # 自定义编辑表单项
     editApi: API = None  # 配置编辑选项接口
-    removable: bool = False  # 删除选项
+    removable: bool = None  # False  # 删除选项
     deleteApi: API = None  # 配置删除选项接口
     autoFill: dict = None  # 自动填充
     menuTpl: str = None  # 支持配置自定义菜单
     clearable: bool = None  # 单选模式下是否支持清空
-    hideSelected: bool = False  # 隐藏已选选项
+    hideSelected: bool = None  # False  # 隐藏已选选项
     mobileClassName: str = None  # 移动端浮层类名
     selectMode: str = None  # 可选：group、table、tree、chained、associated。分别为：列表形式、表格形式、树形选择形式、
     # 级联选择形式， 关联选择形式（与级联选择的区别在于，级联是无限极，而关联只有一级，关联左边可以是个 tree）。
@@ -944,6 +1034,18 @@ class Select(FormItem):
     leftOptions: List[dict] = None  # 当展示形式为 associated 时用来配置左边的选项集。
     leftMode: str = None  # 当展示形式为 associated 时用来配置左边的选择形式，支持 list 或者 tree。默认为 list。
     rightMode: str = None  # 当展示形式为 associated 时用来配置右边的选择形式，可选：list、table、tree、chained。
+
+
+class NestedSelect(Select):
+    """级联选择器"""
+    type: str = 'nested-select'
+    cascade: bool = None  # False  # 设置 true时，当选中父节点时不自动选择子节点。
+    withChildren: bool = None  # False  # 设置 true时，选中父节点时，值里面将包含子节点的值，否则只会保留父节点的值。
+    onlyChildren: bool = None  # False  # 多选时，选中父节点时，是否只将其子节点加入到值中。
+    searchPromptText: str = None  # "输入内容进行检索"  # 搜索框占位文本
+    noResultsText: str = None  # "未找到任何结果"  # 无结果时的文本
+    hideNodePathLabel: bool = None  # False  # 是否隐藏选择框中已选择节点的路径 label 信息
+    onlyLeaf: bool = None  # False  # 只允许选择叶子节点
 
 
 class Textarea(FormItem):
@@ -1129,6 +1231,8 @@ class InputTree(FormItem):
     treeContainerClassName: str = None  # tree 最外层容器类名
     enableNodePath: bool = None  # False  # 是否开启节点路径模式
     pathSeparator: str = None  # "/"  # 节点路径的分隔符，enableNodePath为true时生效
+    deferApi: API = None  # 懒加载的选项请配置 defer 为 true，然后配置 deferApi 即可完成懒加载
+    selectFirst: bool = None
 
 
 class TreeSelect(InputTree):
@@ -1257,6 +1361,7 @@ class CRUD(AmisNode):
     alwaysShowPagination: bool = None  # 是否总是显示分页
     affixHeader: bool = None  # True  # 是否固定表头(table 下)
     autoGenerateFilter: bool = None  # 是否开启查询区域，开启后会根据列元素的 searchable 属性值，自动生成查询条件表单
+    itemAction: Action = None  # 实现点击某一行后进行自定义操作，支持 action 里的所有配置，比如弹框、刷新其它组件等。
 
 
 class TableColumn(AmisNode):
@@ -1267,7 +1372,7 @@ class TableColumn(AmisNode):
     name: str = None  # 通过名称关联数据
     tpl: Template = None  # 模板
     fixed: str = None  # 是否固定当前列 left|right|none
-    popOver: bool = None  # 弹出框
+    popOver: Union[bool, dict] = None  # 弹出框
     quickEdit: Union[bool, dict] = None  # 快速编辑
     copyable: Union[bool, dict] = None  # 是否可复制  boolean 或 {icon: string, content:string}
     sortable: bool = None  # False  # 是否可排序
@@ -1281,7 +1386,7 @@ class ColumnOperation(TableColumn):
     """操作列"""
     type: str = 'operation'
     label: Template = None  # "操作"
-    toggled: bool = True
+    toggled: bool = None  # True
     buttons: List[Union[Action, AmisNode]] = None
 
 
@@ -1314,7 +1419,7 @@ class Table(AmisNode):
     itemActions: List[Action] = None  # 悬浮行操作按钮组
     itemCheckableOn: Expression = None  # 配置当前行是否可勾选的条件，要用 表达式
     itemDraggableOn: Expression = None  # 配置当前行是否可拖拽的条件，要用 表达式
-    checkOnItemClick: bool = False  # 点击数据行是否可以勾选当前行
+    checkOnItemClick: bool = None  # False  # 点击数据行是否可以勾选当前行
     rowClassName: str = None  # 给行添加 CSS 类名
     rowClassNameExpr: Template = None  # 通过模板给行添加 CSS 类名
     prefixRow: list = None  # 顶部总结行
@@ -1499,8 +1604,8 @@ class Iframe(AmisNode):
     frameBorder: list = None  # frameBorder
     style: dict = None  # 样式对象
     src: str = None  # iframe 地址
-    height: Union[int, str] = None  # iframe 高度
-    width: Union[int, str] = None  # iframe 宽度
+    height: Union[int, str] = None  # "100%"#  iframe 高度
+    width: Union[int, str] = None  # "100%" # iframe 宽度
 
 
 class Spinner(AmisNode):

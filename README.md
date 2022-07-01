@@ -60,7 +60,7 @@
 
 ## 核心依赖
 
-- [Fastapi](https://fastapi.tiangolo.com) 负责 web 部分
+- [FastAPI](https://fastapi.tiangolo.com) 负责 web 部分
 - [SQLModel](https://sqlmodel.tiangolo.com/) 负责ORM模型映射(
   完美结合[SQLAlchemy](https://www.sqlalchemy.org/)+[Pydantic](https://pydantic-docs.helpmanual.io/), 拥有`SQLAlchemy`
   和`Pydantic`的所有功能)
@@ -72,7 +72,7 @@
 
 - `amis`: 基于`baidu amis`的`pydantic`数据模型构建库,用于快速生成/解析`amis` `json` 数据.
 - `fastapi-sqlmodel-crud`: 基于`FastAPI`+`SQLModel`, 用于快速构建Create,Read,Update,Delete通用API接口.
-- `amis_admin`: 启发自`Django-Admin`, 结合`amis`+`fastapi-sqlmodel-crud`, 用于快速构建`Web Admin`管理后台.
+- `admin`: 启发自`Django-Admin`, 结合`amis`+`fastapi-sqlmodel-crud`, 用于快速构建`Web Admin`管理后台.
 
 ## 安装
 
@@ -84,14 +84,14 @@ pip install fastapi_amis_admin
 
 ```python
 from fastapi import FastAPI
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
 
 # 创建FastAPI应用
 app = FastAPI()
 
 # 创建AdminSite实例
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 # 挂载后台管理系统
 site.mount_app(app)
@@ -107,16 +107,16 @@ if __name__ == '__main__':
 ```python
 from fastapi import FastAPI
 from sqlmodel import SQLModel
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
-from fastapi_amis_admin.amis_admin import admin
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
+from fastapi_amis_admin.admin import admin
 from fastapi_amis_admin.models.fields import Field
 
 # 创建FastAPI应用
 app = FastAPI()
 
 # 创建AdminSite实例
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 
 # 先创建一个SQLModel模型,详细请参考: https://sqlmodel.tiangolo.com/
@@ -158,9 +158,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from starlette.requests import Request
 from fastapi_amis_admin.amis.components import Form
-from fastapi_amis_admin.amis_admin import admin
-from fastapi_amis_admin.amis_admin.settings import Settings
-from fastapi_amis_admin.amis_admin.site import AdminSite
+from fastapi_amis_admin.admin import admin
+from fastapi_amis_admin.admin.settings import Settings
+from fastapi_amis_admin.admin.site import AdminSite
 from fastapi_amis_admin.crud.schema import BaseApiOut
 from fastapi_amis_admin.models.fields import Field
 
@@ -168,7 +168,7 @@ from fastapi_amis_admin.models.fields import Field
 app = FastAPI()
 
 # 创建AdminSite实例
-site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///admisadmin.db'))
+site = AdminSite(settings=Settings(database_url_async='sqlite+aiosqlite:///amisadmin.db'))
 
 
 # 注册FormAdmin
@@ -199,15 +199,34 @@ if __name__ == '__main__':
     uvicorn.run(app, debug=True)
 ```
 
+## 使用命令行
+
+```bash
+# 安装命令行拓展
+pip install fastapi_amis_admin[cli]
+
+# 查看帮助
+faa --help
+
+# 初始化一个`FastAPI-Amis-Admin`项目
+faa new project_name --init
+
+# 初始化一个`FastAPI-Amis-Admin`应用
+faa new app_name
+
+# 快速运行项目
+faa run
+```
+
 ## 界面预览
 
 - Open `http://127.0.0.1:8000/admin/` in your browser:
 
-![ModelAdmin](https://raw.githubusercontent.com/amisadmin/fastapi_amis_admin_demo/master/upload/img/ModelAdmin.png)
+![ModelAdmin](https://s2.loli.net/2022/03/20/ItgFYGUONm1jCz5.png)
 
 - Open `http://127.0.0.1:8000/admin/docs` in your browser:
 
-![Docs](https://raw.githubusercontent.com/amisadmin/fastapi_amis_admin_demo/master/upload/img/Docs.png)
+![Docs](https://s2.loli.net/2022/03/20/1GcCiPdmXayxrbH.png)
 
 ## 相关项目
 

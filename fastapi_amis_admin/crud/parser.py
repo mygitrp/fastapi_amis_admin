@@ -1,4 +1,5 @@
 import datetime
+from functools import lru_cache
 from typing import Union, Optional, Type, List, Dict, Any, Iterable, Tuple, Callable
 
 from pydantic.datetime_parse import parse_datetime, parse_date
@@ -7,10 +8,9 @@ from pydantic.utils import smart_deepcopy
 from sqlalchemy import Column
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.sql import Select
 from sqlalchemy.sql.elements import Label
 from sqlmodel import SQLModel
-from sqlmodel.main import SQLModelMetaclass
-from sqlmodel.sql.expression import Select
 
 SQLModelField = Union[str, InstrumentedAttribute]
 SQLModelListField = Union[Type[SQLModel], SQLModelField]
@@ -109,20 +109,21 @@ class SQLModelFieldParser:
             insfield = self.get_insfield(field)
             if insfield is not None:
                 result.append(insfield)
-            elif isinstance(field, SQLModelMetaclass):
-                result.extend(self.get_sqlmodel_insfield(field))  # type:ignore
+            elif isinstance(field, type) and issubclass(field, SQLModel):
+                result.extend(self.get_sqlmodel_insfield(field))
             elif save_class and isinstance(field, save_class):
                 result.append(field)
         return result
 
-    @staticmethod
-    def get_python_type_parse(field: Union[InstrumentedAttribute, Column]) -> Callable:
-        try:
-            python_type = field.expression.type.python_type
-            if issubclass(python_type, datetime.date):
-                if issubclass(python_type, datetime.datetime):
-                    return parse_datetime
-                return parse_date
-            return python_type
-        except NotImplementedError:
-            return str
+
+@lru_cache()
+def get_python_type_parse(field: Union[InstrumentedAttribute, Column]) -> Callable:
+    try:
+        python_type = field.expression.type.python_type
+        if issubclass(python_type, datetime.date):
+            if issubclass(python_type, datetime.datetime):
+                return parse_datetime
+            return parse_date
+        return python_type
+    except NotImplementedError:
+        return str
